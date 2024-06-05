@@ -1,0 +1,74 @@
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu-desktop
+    username: brita-user
+    password: "$5$xyz$pXQt9lJEbTrMzCjstHapGTdVcObvkmKRJOnFlqJzVa."
+  storage:
+    layout:
+      name: lvm
+  late-commands:
+    - curtin in-target -- apt remove brltty
+    - curtin in-target -- apt-get update
+    - curtin in-target -- apt-get install apt-transport-https ca-certificates gnupg software-properties-common wget
+    - curtin in-target -- apt-get install zlib1g-dev libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev
+    - curtin in-target -- apt-get install libglu1-mesa libqt5gui5 xvfb
+    - curtin in-target -- wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
+    # CMake
+    # For Ubuntu Bionic Beaver (18.04):
+    - curtin in-target -- apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main'
+    - curtin in-target -- apt-get update
+    # Install our kitware-archive-keyring package
+    - curtin in-target -- apt-get install kitware-archive-keyring
+    - curtin in-target -- apt-key --keyring /etc/apt/trusted.gpg del C1F34CDD40CD72DA
+    - curtin in-target -- apt-get install cmake
+    - curtin in-target -- cmake version 3.16.3
+    # Python
+    - curtin in-target -- git clone git://github.com/pyenv/pyenv.git ~/.pyenv
+    - curtin in-target -- echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+    - curtin in-target -- echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+    - curtin in-target -- echo "if command -v pyenv >/dev/null 2>&1; then" >> ~/.bashrc
+    - curtin in-target -- echo "    eval \"\$(pyenv init --path)\"" >> ~/.bashrc
+    - curtin in-target -- echo "fi" >> ~/.bashrc
+    - curtin in-target -- source ~/.bashrc
+    # Switch to v3.7.4
+    - curtin in-target -- PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.7.4
+    - curtin in-target -- pyenv install 3.7-dev
+    - curtin in-target -- pyenv global 3.7.4
+    - curtin in-target -- pyenv global system
+    # Python Dependencies
+    - curtin in-target -- python -m pip install -r requirements.txt
+    # Rust
+    - curtin in-target -- mkdir rust
+    - curtin in-target -- cd rust
+    - curtin in-target -- curl -sSO 'https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init'
+    - curtin in-target -- chmod a+x rustup-init
+    - curtin in-target -- ./rustup-init --quiet -y
+    # If you want also crosscompile for windows, install the corresponding target:
+    - curtin in-target -- rustup target add x86_64-pc-windows-gnu
+    # Doxygen
+    # Uninstall existing doxygen installation
+    - curtin in-target -- apt-get remove doxygen
+    # Install doxgen dependencies (flex and bison)
+    - curtin in-target -- apt-get install flex
+    - curtin in-target -- apt-get install bison
+    # Install doxygen
+    - curtin in-target -- git clone https://github.com/doxygen/doxygen.git
+    - curtin in-target -- cd doxygen
+    - curtin in-target -- mkdir build
+    - curtin in-target -- cd build
+    - curtin in-target -- cmake -G "Unix Makefiles" ..
+    - curtin in-target -- make
+    - curtin in-target -- make install
+    # TouchGFX Dependencies
+    - curtin in-target -- apt-get update
+    - curtin in-target -- apt-get install -y ruby-dev zlib1g-dev g++
+    - curtin in-target -- apt-get install -y libasound-dev libpulse-dev libjpeg-dev libtiff-dev
+    - curtin in-target -- gem install nokogiri -v "1.6.1"
+    - curtin in-target -- gem install roo
+    # For the desktop simulator version you also need:
+    - curtin in-target -- add-apt-repository ppa:ubuntu-toolchain-r/test
+    - curtin in-target -- apt-get update
+    - curtin in-target -- apt-get install libpng12-0
+    # clang tools
+    - curtin in-target -- apt install clang-format clang-tidy
